@@ -1,0 +1,16 @@
+{
+    "authors": [
+        {
+            "name": "KYP",
+            "homepage": "http://www.kyp.fr",
+            "role": "Author"
+        }
+    ],
+    "license": "GPL-3.0+",
+    "name": "kypfr/update-magento-patches",
+    "description": "this shell script generate new patchs files from Magento security patchs to take care of the possible overload made with autoload management",
+    "support": {
+        "email": "dev@kyp.fr"
+    },
+    "prefer-stable": true
+}
