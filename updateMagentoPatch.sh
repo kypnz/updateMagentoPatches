@@ -141,12 +141,12 @@ if [ $PHTML -gt 0 ]; then
 		for j in `find . -name "*.phtml" -type f | grep $TEMPLATE_BASE_PATH`; do 
 			# exclude current file to patch
 			if [ $(realpath $i) != $(realpath $j) ]; then
-				lFILE_PATTERN=$(echo "$i" | sed "s|\\/|\\\/|g");
+				FILE_PATTERN=$(echo "$i" | sed "s|\\/|\\\/|g");
 				# extract the patch instruction and save it in $TMP_PATCH_FILE
 				awk "/diff --git/{found=0} {if(found) print} /diff --git $FILE_PATTERN $FILE_PATTERN/{found=1}" $PATCH > $TMP_PATCH_FILE;
 				# remplace in this instruction the original filepath with the overloaded one and add it in $NEWPATCH
 				echo "diff --git $j $j"  >> $NEWPATCHFP
-				cat $TMP_PATCH_FILE | sed "s|$i|$FILE_TO_PATCH|g" >> $NEWPATCHFP
+				cat $TMP_PATCH_FILE | sed "s|$i|$j|g" >> $NEWPATCHFP
 				log_warning_msg "Original template have been customized by $j. Patch for custom file have been added";			
 			fi;
 		done;
@@ -173,7 +173,7 @@ if [ $PHTML -gt 0 ]; then
 				awk "/diff --git/{found=0} {if(found) print} /diff --git $FILE_PATTERN $FILE_PATTERN/{found=1}" $PATCH > $TMP_PATCH_FILE;
 				# remplace in this instruction the original filepath with the overloaded one and add it in $NEWPATCH
 				echo "diff --git $j $j"  >> $NEWPATCHFP
-				cat $TMP_PATCH_FILE | sed "s|$i|$FILE_TO_PATCH|g" >> $NEWPATCHFP
+				cat $TMP_PATCH_FILE | sed "s|$i|$j|g" >> $NEWPATCHFP
 				log_warning_msg "Original layout have been customized by $j. Patch for custom file have been added";				
 			fi;
 		done;
