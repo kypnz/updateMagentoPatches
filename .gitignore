@@ -1,1 +1,4 @@
 PATCH*.sh
+.idea
+.project
+.settings
