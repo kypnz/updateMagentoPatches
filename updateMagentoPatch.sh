@@ -116,7 +116,7 @@ for i in `cat $PATCH | grep "diff --git" | grep ".php" | cut -d " " -f 3`; do
 			# extract the patch instruction and save it in $TMP_PATCH_FILE
 			awk "/diff --git/{found=0} {if(found) print} /diff --git $FILE_PATTERN $FILE_PATTERN/{found=1}" $PATCH > $TMP_PATCH_FILE;
 			# remplace in this instruction the original filepath with the overloaded one and add it in $NEWPATCH
-			echo "diff --git $j $j"  >> $NEWPATCHFP
+			echo "diff --git $OVERLOAD_FILE $OVERLOAD_FILE"  >> $NEWPATCHFP
 			cat $TMP_PATCH_FILE | sed "s|$i|$OVERLOAD_FILE|g" >> $NEWPATCHFP
 			log_warning_msg "This file have been overloaded by $OVERLOAD_FILE. Patch for this overload have been added";
 		else
@@ -135,19 +135,32 @@ PHTML=`cat $PATCH | grep "diff --git" | grep ".phtml" | wc -l`;
 if [ $PHTML -gt 0 ]; then
 	for i in `cat $PATCH | grep "diff --git" | grep ".phtml" | cut -d " " -f 3`; do
 		log_begin_msg "Processing template file $i";
-		TEMPLATE_BASE_PATH=`echo "$i" | sed "s|app/design/frontend/base/default||g"`;
-		TEMPLATE_BASE_PATH=`echo "$TEMPLATE_BASE_PATH" | sed "s|app/design/adminhtml/base/default||g"`;
-		TEMPLATE_BASE_PATH=`echo "$TEMPLATE_BASE_PATH" | sed "s|app/design/adminhtml/default/default||g"`;
-		for j in `find . -name "*.phtml" -type f | grep $TEMPLATE_BASE_PATH`; do 
+		echo "$i" | grep "frontend" > /dev/null;
+		SCOPE="frontend";
+		if [ $? -eq 0 ]; then
+			TEMPLATE_BASE_PATH=`echo "$i" | sed "s|app/design/frontend/base/default||g"`;
+		else		
+			SCOPE="adminhtml";
+			TEMPLATE_BASE_PATH=`echo "$i" | sed "s|app/design/adminhtml/base/default||g"`;
+			TEMPLATE_BASE_PATH=`echo "$TEMPLATE_BASE_PATH" | sed "s|app/design/adminhtml/default/default||g"`;
+		fi
+		for j in `find . -name "*.phtml" -type f | grep $SCOPE | grep $TEMPLATE_BASE_PATH`; do 
 			# exclude current file to patch
 			if [ $(realpath $i) != $(realpath $j) ]; then
-				FILE_PATTERN=$(echo "$i" | sed "s|\\/|\\\/|g");
-				# extract the patch instruction and save it in $TMP_PATCH_FILE
-				awk "/diff --git/{found=0} {if(found) print} /diff --git $FILE_PATTERN $FILE_PATTERN/{found=1}" $PATCH > $TMP_PATCH_FILE;
-				# remplace in this instruction the original filepath with the overloaded one and add it in $NEWPATCH
-				echo "diff --git $j $j"  >> $NEWPATCHFP
-				cat $TMP_PATCH_FILE | sed "s|$i|$j|g" >> $NEWPATCHFP
-				log_warning_msg "Original template have been customized by $j. Patch for custom file have been added";			
+				# look for the file to patch in the original patch file: some Patchs contains references to some themes
+				P=`echo "$j" | sed "s|\./||g"`;
+				grep "$P" "$PATCH" > /dev/null;
+				if [ $? -eq 1 ]; then
+					FILE_PATTERN=$(echo "$i" | sed "s|\\/|\\\/|g");
+					# extract the patch instruction and save it in $TMP_PATCH_FILE
+					awk "/diff --git/{found=0} {if(found) print} /diff --git $FILE_PATTERN $FILE_PATTERN/{found=1}" $PATCH > $TMP_PATCH_FILE;
+					# remplace in this instruction the original filepath with the overloaded one and add it in $NEWPATCH
+					echo "diff --git $j $j"  >> $NEWPATCHFP
+					cat $TMP_PATCH_FILE | sed "s|$i|$j|g" >> $NEWPATCHFP
+					log_warning_msg "This template have been customized by $j. Patch for this custom theme have been added";	
+				else
+					log_warning_msg "This template have been customized by $j but there is a patch instruction in the original patch file. Skip custom patch";
+				fi		
 			fi;
 		done;
 		log_end_msg 0
@@ -161,20 +174,33 @@ fi;
 PHTML=`cat $PATCH | grep "diff --git" | grep ".xml" | grep "design" | wc -l`;
 if [ $PHTML -gt 0 ]; then
 	for i in `cat $PATCH | grep "diff --git" | grep ".xml" | grep "design" | cut -d " " -f 3`; do
-		log_begin_msg "Processing template file $i";
-		TEMPLATE_BASE_PATH=`echo "$i" | sed "s|app/design/frontend/base/default||g"`;
-		TEMPLATE_BASE_PATH=`echo "$TEMPLATE_BASE_PATH" | sed "s|app/design/adminhtml/base/default||g"`;
-		TEMPLATE_BASE_PATH=`echo "$TEMPLATE_BASE_PATH" | sed "s|app/design/adminhtml/default/default||g"`;
-		for j in `find . -name "*.xml" -type f | grep $TEMPLATE_BASE_PATH`; do 
+		log_begin_msg "Processing layout file $i";
+		echo "$i" | grep "frontend" > /dev/null;
+		SCOPE="frontend";
+		if [ $? -eq 0 ]; then
+			TEMPLATE_BASE_PATH=`echo "$i" | sed "s|app/design/frontend/base/default||g"`;
+		else		
+			SCOPE="adminhtml";
+			TEMPLATE_BASE_PATH=`echo "$i" | sed "s|app/design/adminhtml/base/default||g"`;
+			TEMPLATE_BASE_PATH=`echo "$TEMPLATE_BASE_PATH" | sed "s|app/design/adminhtml/default/default||g"`;
+		fi		
+		for j in `find . -name "*.xml" -type f | grep $SCOPE | grep $TEMPLATE_BASE_PATH`; do 
 			# exclude current file to patch
 			if [ $(realpath $i) != $(realpath $j) ]; then
-				FILE_PATTERN=$(echo "$i" | sed "s|\\/|\\\/|g");
-				# extract the patch instruction and save it in $TMP_PATCH_FILE
-				awk "/diff --git/{found=0} {if(found) print} /diff --git $FILE_PATTERN $FILE_PATTERN/{found=1}" $PATCH > $TMP_PATCH_FILE;
-				# remplace in this instruction the original filepath with the overloaded one and add it in $NEWPATCH
-				echo "diff --git $j $j"  >> $NEWPATCHFP
-				cat $TMP_PATCH_FILE | sed "s|$i|$j|g" >> $NEWPATCHFP
-				log_warning_msg "Original layout have been customized by $j. Patch for custom file have been added";				
+				# look for the file to patch in the original patch file: some Patchs contains references to some themes
+				P=`echo "$j" | sed "s|\./||g"`;
+				grep "$P" "$PATCH" > /dev/null;
+				if [ $? -eq 1 ]; then
+					FILE_PATTERN=$(echo "$i" | sed "s|\\/|\\\/|g");
+					# extract the patch instruction and save it in $TMP_PATCH_FILE
+					awk "/diff --git/{found=0} {if(found) print} /diff --git $FILE_PATTERN $FILE_PATTERN/{found=1}" $PATCH > $TMP_PATCH_FILE;
+					# remplace in this instruction the original filepath with the overloaded one and add it in $NEWPATCH
+					echo "diff --git $j $j"  >> $NEWPATCHFP
+					cat $TMP_PATCH_FILE | sed "s|$i|$j|g" >> $NEWPATCHFP
+					log_warning_msg "This layout have been customized by $j. Patch for this custom theme have been added";	
+				else
+					log_warning_msg "This layout have been customized by $j but there is a patch instruction in the original patch file. Skip custom patch";
+				fi			
 			fi;
 		done;
 		log_end_msg 0
